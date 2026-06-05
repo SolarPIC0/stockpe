@@ -22,7 +22,11 @@
       --electric: #2f6fbe;
       --track: #d8e3e8;
       --shadow: 0 8px 24px rgba(28, 38, 48, 0.08);
-      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "SF Pro Text", "SF Pro Display", "PingFang SC", "Hiragino Sans GB",
+        "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC",
+        "Source Han Sans SC", Arial, sans-serif;
+      font-family: var(--font-sans);
     }
 
     * { box-sizing: border-box; }
@@ -31,6 +35,10 @@
       margin: 0;
       background: var(--bg);
       color: var(--ink);
+      font-family: var(--font-sans);
+      font-synthesis-weight: none;
+      text-rendering: geometricPrecision;
+      -webkit-font-smoothing: antialiased;
       letter-spacing: 0;
     }
 
@@ -50,6 +58,7 @@
     h1 {
       margin: 0 0 6px;
       font-size: 24px;
+      font-weight: 750;
       line-height: 1.25;
     }
 
@@ -57,6 +66,7 @@
     .status {
       color: var(--muted);
       font-size: 13px;
+      font-weight: 400;
       line-height: 1.55;
     }
 
@@ -114,6 +124,7 @@
       padding: 0 10px;
       color: var(--ink);
       background: #fff;
+      font-family: inherit;
       font-size: 14px;
     }
 
@@ -192,6 +203,8 @@
       color: var(--ink);
       padding: 0 12px;
       cursor: pointer;
+      font-family: inherit;
+      font-weight: 520;
       font-size: 13px;
     }
 
@@ -237,7 +250,7 @@
       padding: 9px 10px;
       color: var(--ink);
       background: #fff;
-      font: 12px/1.55 "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      font: 12px/1.55 var(--font-sans);
     }
 
     .compare-box {
@@ -514,7 +527,7 @@
       <div>
         <h1>季报 EPS 与 PE 重估工具</h1>
         <div class="subtitle">用同比利润滑块模拟未来季报，观察 PE(TTM)、动态 PE、forward PE 和股价重估。</div>
-        <div class="subtitle" id="versionText">版本：新增可比 PE 建议</div>
+        <div class="subtitle" id="versionText">版本：历史行情分段稳定版</div>
       </div>
       <div class="status" id="statusText">等待刷新行情</div>
     </header>
@@ -711,7 +724,7 @@
 
         <div class="panel chart-box history-box">
           <div class="chart-head">
-            <h2>历史财报发布：PE 被利润分母压低了多少</h2>
+            <h2>历史财报公告：TTM PE 怎么重算</h2>
             <div class="legend">
               <span><i class="dot" style="background:#c47a24"></i>发布前 PE</span>
               <span><i class="dot" style="background:#1e8a62"></i>发布后 PE（同价）</span>
@@ -719,7 +732,7 @@
             </div>
           </div>
           <canvas id="historyImpactChart"></canvas>
-          <div class="chart-note" id="historyImpactNote">点击“拉取财报利润”后，会用历史公告日和历史收盘价生成。A 股历史市值用当前总股本近似，适合看 PE 分母冲击方向。</div>
+          <div class="chart-note" id="historyImpactNote">点击“拉取财报利润”后，会按公告日分组，用公告日前一交易日和公告后首个交易日收盘价生成，并尽量使用报告期总股本估算市值。</div>
           <div class="table-scroll">
             <table class="impact-table">
               <thead>
@@ -1316,7 +1329,7 @@
       const columns = [
         "SECUCODE", "SECURITY_CODE", "SECURITY_NAME_ABBR", "REPORT_DATE", "REPORT_DATE_NAME", "NOTICE_DATE",
         "EPSJB", "TOTALOPERATEREVE", "PARENTNETPROFIT", "KCFJCXSYJLR",
-        "TOTALOPERATEREVETZ", "PARENTNETPROFITTZ", "KCFJCXSYJLRTZ"
+        "TOTALOPERATEREVETZ", "PARENTNETPROFITTZ", "KCFJCXSYJLRTZ", "TOTAL_SHARE"
       ].join(",");
       const filter = encodeURIComponent(`(SECUCODE="${secucode}")`);
       const url = `https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=${columns}&filter=${filter}&pageNumber=1&pageSize=48&sortTypes=-1&sortColumns=REPORT_DATE`;
@@ -1371,6 +1384,37 @@
       }).filter((row) => row.date && Number.isFinite(row.close));
     }
 
+    async function fetchKlineRowsForNoticeDates(secid, noticeDates) {
+      const dates = [...new Set(noticeDates.map(normalizeDate).filter(Boolean))].sort();
+      const byDate = new Map();
+      let requestCount = 0;
+      let failureCount = 0;
+
+      for (let i = 0; i < dates.length; i += 4) {
+        const chunk = dates.slice(i, i + 4);
+        const results = await Promise.allSettled(chunk.map((date) => {
+          requestCount += 1;
+          return fetchKlineRows(secid, addDaysCompact(date, -14), addDaysCompact(date, 14));
+        }));
+
+        results.forEach((result) => {
+          if (result.status !== "fulfilled") {
+            failureCount += 1;
+            return;
+          }
+          result.value.forEach((row) => byDate.set(row.date, row));
+        });
+
+        if (i + 4 < dates.length) {
+          await new Promise((resolve) => window.setTimeout(resolve, 250));
+        }
+      }
+
+      const rows = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+      if (!rows.length) throw new Error("历史行情接口请求失败：分段请求也没有拿到日K");
+      return { rows, requestCount, failureCount };
+    }
+
     function findPreviousTrade(klineRows, date) {
       const target = normalizeDate(date);
       let picked = null;
@@ -1383,6 +1427,11 @@
     function findNextTrade(klineRows, date) {
       const target = normalizeDate(date);
       return klineRows.find((row) => row.date >= target) || null;
+    }
+
+    function findTradeAfterNotice(klineRows, date) {
+      const target = normalizeDate(date);
+      return klineRows.find((row) => row.date > target) || findNextTrade(klineRows, date);
     }
 
     function buildQuarterProfitDetails(rows) {
@@ -1412,6 +1461,11 @@
       return { quarters, rowByKey };
     }
 
+    function reportShare(row, fallbackShares) {
+      const value = Number(row && row.TOTAL_SHARE);
+      return Number.isFinite(value) && value > 0 ? value / 100000000 : fallbackShares;
+    }
+
     function ttmProfitEnding(quarterMap, key) {
       let sum = 0;
       for (let i = 0; i < 4; i += 1) {
@@ -1422,37 +1476,64 @@
       return sum;
     }
 
-    function buildHistoricalImpactEvents(rows, klineRows, shares) {
+    function buildHistoricalImpactEvents(rows, klineRows, fallbackShares) {
       const { quarters, rowByKey } = buildQuarterProfitDetails(rows);
       const keys = [...rowByKey.keys()].sort((a, b) => a - b);
+      const noticeGroups = new Map();
       const result = [];
 
       keys.forEach((key) => {
         const row = rowByKey.get(key);
         const noticeDate = normalizeDate(row.NOTICE_DATE);
+        if (!noticeDate) return;
+        if (!noticeGroups.has(noticeDate)) noticeGroups.set(noticeDate, []);
+        noticeGroups.get(noticeDate).push(key);
+      });
+
+      [...noticeGroups.keys()].sort().forEach((noticeDate) => {
+        const announcedBefore = keys.filter((key) => normalizeDate(rowByKey.get(key).NOTICE_DATE) < noticeDate);
+        const announcedAfter = keys.filter((key) => normalizeDate(rowByKey.get(key).NOTICE_DATE) <= noticeDate);
+        const beforeKey = Math.max(...announcedBefore);
+        const afterKey = Math.max(...announcedAfter);
+        if (!Number.isFinite(beforeKey) || !Number.isFinite(afterKey) || afterKey <= beforeKey) return;
+
         const beforeTrade = findPreviousTrade(klineRows, noticeDate);
-        const afterTrade = findNextTrade(klineRows, noticeDate);
-        const currentProfit = quarters.get(key);
-        const priorSameQuarterProfit = quarters.get(key - 4);
-        const beforeTtm = ttmProfitEnding(quarters, key - 1);
-        const afterTtm = ttmProfitEnding(quarters, key);
+        const afterTrade = findTradeAfterNotice(klineRows, noticeDate);
+        const currentProfit = quarters.get(afterKey);
+        const priorSameQuarterProfit = quarters.get(afterKey - 4);
+        const beforeTtm = ttmProfitEnding(quarters, beforeKey);
+        const afterTtm = ttmProfitEnding(quarters, afterKey);
 
         if (!noticeDate || !beforeTrade || !afterTrade || !Number.isFinite(currentProfit) || !beforeTtm || !afterTtm) return;
 
-        const marketCapBefore = beforeTrade.close * shares;
-        const marketCapAfter = afterTrade.close * shares;
+        const beforeRow = rowByKey.get(beforeKey);
+        const afterRow = rowByKey.get(afterKey);
+        const beforeShares = reportShare(beforeRow, fallbackShares);
+        const afterShares = reportShare(afterRow, fallbackShares);
+        const marketCapBefore = beforeTrade.close * beforeShares;
+        const marketCapAfter = afterTrade.close * afterShares;
         const peBefore = safePe(marketCapBefore, beforeTtm);
         const peAfterSamePrice = safePe(marketCapBefore, afterTtm);
         const peAfterActual = safePe(marketCapAfter, afterTtm);
         if (!peBefore || !peAfterSamePrice || !peAfterActual) return;
 
+        const groupKeys = noticeGroups.get(noticeDate).sort((a, b) => a - b);
+        const reportNames = groupKeys
+          .map((groupKey) => rowByKey.get(groupKey).REPORT_DATE_NAME || periodTextFromKey(groupKey))
+          .join(" / ");
+        const period = afterKey - beforeKey === 1
+          ? periodTextFromKey(afterKey)
+          : `${periodTextFromKey(beforeKey + 1)}-${periodTextFromKey(afterKey)}`;
+
         result.push({
-          key,
-          period: periodTextFromKey(key),
-          reportName: row.REPORT_DATE_NAME || periodTextFromKey(key),
+          key: afterKey,
+          period,
+          reportName: reportNames,
           noticeDate,
           beforeTradeDate: beforeTrade.date,
           afterTradeDate: afterTrade.date,
+          beforeReport: periodTextFromKey(beforeKey),
+          afterReport: periodTextFromKey(afterKey),
           beforeClose: beforeTrade.close,
           afterClose: afterTrade.close,
           priceChange: afterTrade.close / beforeTrade.close - 1,
@@ -1463,6 +1544,8 @@
           beforeTtm,
           afterTtm,
           ttmChange: afterTtm / beforeTtm - 1,
+          beforeShares,
+          afterShares,
           peBefore,
           peAfterSamePrice,
           peAfterActual,
@@ -1677,7 +1760,7 @@
       window.setTimeout(() => {
         if (activeKey === key && (peerGroups[key] || []).length) refreshComparablePe();
       }, 0);
-      el.historyImpactNote.textContent = "点击“拉取财报利润”后，会用历史公告日和历史收盘价生成。A 股历史市值用当前总股本近似，适合看 PE 分母冲击方向。";
+      el.historyImpactNote.textContent = "点击“拉取财报利润”后，会按公告日分组，用公告日前一交易日和公告后首个交易日收盘价生成，并尽量使用报告期总股本估算市值。";
     }
 
     function readState() {
@@ -1871,6 +1954,10 @@
       return { ctx, width: rect.width, height: rect.height };
     }
 
+    function chartFont(size = 12) {
+      return `${size}px ${window.getComputedStyle(document.body).fontFamily}`;
+    }
+
     function drawAxes(ctx, left, top, width, height) {
       ctx.strokeStyle = "#d9dfdf";
       ctx.lineWidth = 1;
@@ -1895,7 +1982,7 @@
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, width, height);
       drawAxes(ctx, pad.left, pad.top, chartW, chartH);
-      ctx.font = "12px Segoe UI, Microsoft YaHei, Arial";
+      ctx.font = chartFont(12);
 
       for (let i = 0; i <= 4; i += 1) {
         const yValue = maxPrice * i / 4;
@@ -1968,7 +2055,7 @@
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, width, height);
       drawAxes(ctx, pad.left, pad.top, chartW, chartH);
-      ctx.font = "12px Segoe UI, Microsoft YaHei, Arial";
+      ctx.font = chartFont(12);
 
       for (let i = 0; i <= 4; i += 1) {
         const v = maxValue * i / 4;
@@ -2006,7 +2093,7 @@
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, width, height);
       ctx.fillStyle = "#68757f";
-      ctx.font = "13px Segoe UI, Microsoft YaHei, Arial";
+      ctx.font = chartFont(13);
       ctx.fillText(message, 18, 32);
     }
 
@@ -2030,7 +2117,7 @@
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, width, height);
       drawAxes(ctx, pad.left, pad.top, chartW, chartH);
-      ctx.font = "12px Segoe UI, Microsoft YaHei, Arial";
+      ctx.font = chartFont(12);
 
       for (let i = 0; i <= 4; i += 1) {
         const v = maxValue * i / 4;
@@ -2079,7 +2166,7 @@
 
       el.historyRows.innerHTML = events.slice(-12).reverse().map((row) => `
         <tr>
-          <td>${row.period}<small>${row.reportName}</small></td>
+          <td>${row.period}<small>${row.beforeReport} -> ${row.afterReport}；${row.reportName}</small></td>
           <td>${row.noticeDate}<small>${row.beforeTradeDate} -> ${row.afterTradeDate}</small></td>
           <td>${fmtAmount(row.currentProfit, unit)}<small>同比 ${row.yoy === null ? "-" : pct(row.yoy)}</small></td>
           <td>${fmtAmount(row.beforeTtm, unit)} -> ${fmtAmount(row.afterTtm, unit)}<small>${pct(row.ttmChange * 100)}</small></td>
@@ -2105,15 +2192,18 @@
         return;
       }
 
-      const noticeDates = rows.map((row) => normalizeDate(row.NOTICE_DATE)).filter(Boolean);
+      const impactRows = rows.slice(0, 28);
+      const noticeDates = impactRows.map((row) => normalizeDate(row.NOTICE_DATE)).filter(Boolean);
       if (!noticeDates.length) throw new Error("财报公告日为空");
-      const beg = addDaysCompact(noticeDates[noticeDates.length - 1], -20);
-      const end = addDaysCompact(noticeDates[0] || new Date().toISOString().slice(0, 10), 20);
-      const klineRows = await fetchKlineRows(p.secid, beg, end);
+      el.historyImpactNote.textContent = "正在按公告日前后窗口分段拉取历史行情...";
+      const klineResult = await fetchKlineRowsForNoticeDates(p.secid, noticeDates);
       const shares = Math.max(0.000001, n(el.shares, p.shares));
-      const events = buildHistoricalImpactEvents(rows, klineRows, shares);
+      const events = buildHistoricalImpactEvents(impactRows, klineResult.rows, shares);
       updateHistoricalImpact(events);
-      el.historyImpactNote.textContent = `历史 PE 冲击已生成 ${events.length} 个公告事件。发布前用公告日前一交易日收盘价，发布后实际用公告日当天或之后第一个交易日收盘价；历史总市值用当前总股本近似。`;
+      const partial = klineResult.failureCount
+        ? `；${klineResult.failureCount}/${klineResult.requestCount} 个行情窗口失败，已用成功窗口生成`
+        : "";
+      el.historyImpactNote.textContent = `历史 PE 冲击已生成 ${events.length} 个公告事件。使用最近 ${impactRows.length} 份财报，历史行情按公告日前后两周分段请求${partial}。发布前用公告日前一交易日收盘价，发布后实际用公告后首个交易日收盘价；市值优先用报告期总股本估算。`;
     }
 
     function update() {

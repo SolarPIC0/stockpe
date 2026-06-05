@@ -1,0 +1,12 @@
+{
+  "name": "stockpe",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build_cloudflare_pages.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
