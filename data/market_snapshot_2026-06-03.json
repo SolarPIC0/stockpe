@@ -1,0 +1,113 @@
+{
+  "snapshot_date": "2026-06-03",
+  "timezone": "Asia/Hong_Kong",
+  "provider": "Eastmoney push2 public quote API",
+  "field_notes": {
+    "f2": "latest price",
+    "f3": "percent change",
+    "f4": "price change",
+    "f5": "volume",
+    "f6": "turnover",
+    "f9": "PE ratio as returned by provider",
+    "f12": "ticker",
+    "f14": "security name",
+    "f20": "total market capitalization",
+    "f21": "free-float market capitalization",
+    "f23": "PB ratio as returned by provider"
+  },
+  "queries": [
+    {
+      "name": "A-share targets",
+      "url": "https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f14,f2,f3,f4,f5,f6,f9,f23,f20,f21&secids=0.002463,1.600183,0.000725",
+      "response": {
+        "rc": 0,
+        "rt": 11,
+        "svr": 180606405,
+        "lt": 1,
+        "full": 1,
+        "data": {
+          "total": 3,
+          "diff": [
+            {
+              "f2": 131.0,
+              "f3": 6.93,
+              "f4": 8.49,
+              "f5": 846816,
+              "f6": 10748522009.81,
+              "f9": 50.74,
+              "f12": "002463",
+              "f14": "沪电股份",
+              "f20": 252091623347,
+              "f21": 251888173666,
+              "f23": 15.93
+            },
+            {
+              "f2": 141.07,
+              "f3": 4.01,
+              "f4": 5.44,
+              "f5": 1083318,
+              "f6": 14742603927.0,
+              "f9": 73.97,
+              "f12": "600183",
+              "f14": "生益科技",
+              "f20": 342675849776,
+              "f21": 337792332812,
+              "f23": 21.44
+            },
+            {
+              "f2": 5.47,
+              "f3": 2.05,
+              "f4": 0.11,
+              "f5": 30258455,
+              "f6": 16146951841.13,
+              "f9": 29.67,
+              "f12": "000725",
+              "f14": "京东方Ａ",
+              "f20": 202632474510,
+              "f21": 198788900395,
+              "f23": 1.49
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "US targets",
+      "url": "https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f12,f14,f2,f3,f4,f9,f20,f21,f23&secids=105.MU,105.MRVL",
+      "response": {
+        "rc": 0,
+        "rt": 11,
+        "svr": 181669449,
+        "lt": 1,
+        "full": 1,
+        "data": {
+          "total": 2,
+          "diff": [
+            {
+              "f2": 1048.22,
+              "f3": 1.23,
+              "f4": 12.72,
+              "f9": 49.03,
+              "f12": "MU",
+              "f14": "美光科技",
+              "f20": 1182113386939,
+              "f21": 1182113386939,
+              "f23": 16.31
+            },
+            {
+              "f2": 283.11,
+              "f3": 29.02,
+              "f4": 63.68,
+              "f9": 98.02,
+              "f12": "MRVL",
+              "f14": "迈威尔科技",
+              "f20": 247664628000,
+              "f21": 247664628000,
+              "f23": 13.6
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

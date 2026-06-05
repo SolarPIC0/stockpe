@@ -1,0 +1,2324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store">
+  <meta http-equiv="Pragma" content="no-cache">
+  <title>季报 EPS 与 PE 重估工具</title>
+  <style>
+    :root {
+      --bg: #f4f6f5;
+      --panel: #fff;
+      --ink: #1c2630;
+      --muted: #68757f;
+      --line: #d9dfdf;
+      --blue: #2f6fbe;
+      --green: #1e8a62;
+      --orange: #c47a24;
+      --red: #c94f52;
+      --dark: #34404a;
+      --neon: #00c2ff;
+      --electric: #2f6fbe;
+      --track: #d8e3e8;
+      --shadow: 0 8px 24px rgba(28, 38, 48, 0.08);
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(1520px, calc(100vw - 28px));
+      margin: 16px auto 28px;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .subtitle,
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .status { text-align: right; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(660px, 0.9fr) minmax(0, 1.1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel,
+    .metric,
+    .note-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel h2 {
+      font-size: 15px;
+      margin: 0;
+      padding: 13px 15px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section {
+      padding: 14px 15px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:last-child { border-bottom: 0; }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      height: 36px;
+      border: 1px solid #cbd4d5;
+      border-radius: 6px;
+      padding: 0 10px;
+      color: var(--ink);
+      background: #fff;
+      font-size: 14px;
+    }
+
+    input[type="range"] {
+      --range-progress: 0%;
+      height: 36px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, #12b7e8 0%, #2f6fbe var(--range-progress), #dbe6ea var(--range-progress), #eef3f5 100%);
+      box-shadow: inset 0 1px 1px rgba(28, 38, 48, 0.12);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      width: 12px;
+      height: 12px;
+      margin-top: -3px;
+      border: 2px solid #fff;
+      border-radius: 999px;
+      background: #2f6fbe;
+      box-shadow: 0 1px 4px rgba(47, 111, 190, 0.32);
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 6px;
+      border-radius: 999px;
+      background: #eef3f5;
+      box-shadow: inset 0 1px 1px rgba(28, 38, 48, 0.12);
+    }
+
+    input[type="range"]::-moz-range-progress {
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #12b7e8, #2f6fbe);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 10px;
+      height: 10px;
+      border: 2px solid #fff;
+      border-radius: 999px;
+      background: #2f6fbe;
+      box-shadow: 0 1px 4px rgba(47, 111, 190, 0.32);
+    }
+
+    input[type="range"]:hover::-webkit-slider-thumb,
+    input[type="range"]:focus-visible::-webkit-slider-thumb {
+      background: #244f9b;
+      box-shadow: 0 0 0 3px rgba(18, 183, 232, 0.16), 0 2px 6px rgba(47, 111, 190, 0.34);
+    }
+
+    input[type="range"]:hover::-moz-range-thumb,
+    input[type="range"]:focus-visible::-moz-range-thumb {
+      background: #244f9b;
+      box-shadow: 0 0 0 3px rgba(18, 183, 232, 0.16), 0 2px 6px rgba(47, 111, 190, 0.34);
+    }
+
+    button {
+      height: 34px;
+      border: 1px solid #cbd4d5;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 12px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    button.primary {
+      background: var(--dark);
+      border-color: var(--dark);
+      color: #fff;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 11px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      margin-top: 9px;
+    }
+
+    .copy-fallback {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #bfdde8;
+      border-radius: 8px;
+      background: #f3fbfd;
+    }
+
+    .copy-fallback textarea {
+      width: 100%;
+      min-height: 132px;
+      resize: vertical;
+      border: 1px solid #b9d7e2;
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: 12px/1.55 "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    .compare-box {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #edf0f0;
+    }
+
+    .compare-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .compare-head span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .compare-head strong {
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .peer-table {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .peer-table th,
+    .peer-table td {
+      padding: 7px 8px;
+    }
+
+    .query-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 74px;
+      gap: 8px;
+      align-items: end;
+      margin-top: 10px;
+    }
+
+    .quarter-row {
+      display: grid;
+      grid-template-columns: minmax(92px, 1.1fr) minmax(102px, 0.9fr) minmax(150px, 1.8fr) minmax(92px, 0.8fr) minmax(118px, 1fr);
+      gap: 10px;
+      align-items: center;
+      margin: 11px 0;
+    }
+
+    .quarter-row input {
+      min-width: 0;
+    }
+
+    .period-cell,
+    .quarter-row strong {
+      font-size: 13px;
+    }
+
+    .period-cell small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+
+    .quarter-head {
+      margin-top: 8px;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .calc-cell {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .metric {
+      padding: 12px 13px;
+      min-height: 96px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 23px;
+      line-height: 1.2;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .metric strong.compact {
+      font-size: 21px;
+      line-height: 1.28;
+    }
+
+    .metric em {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-style: normal;
+      line-height: 1.45;
+    }
+
+    .charts {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .chart-box {
+      padding: 13px;
+    }
+
+    .chart-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .chart-head h2 {
+      border: 0;
+      padding: 0;
+      font-size: 15px;
+    }
+
+    .legend {
+      display: flex;
+      gap: 11px;
+      color: var(--muted);
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 320px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th,
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #edf0f0;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+    th { color: var(--muted); font-weight: 600; }
+
+    .note-box {
+      padding: 12px 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+
+    .chart-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+      margin-top: 8px;
+    }
+
+    .history-box {
+      margin-top: 12px;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+
+    .impact-table th,
+    .impact-table td {
+      vertical-align: top;
+    }
+
+    .impact-table small {
+      display: block;
+      color: var(--muted);
+      line-height: 1.45;
+      margin-top: 3px;
+    }
+
+    @media (max-width: 1180px) {
+      .grid,
+      .metrics,
+      .charts {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        flex-direction: column;
+      }
+
+      .status { text-align: left; }
+    }
+
+    @media (max-width: 1400px) and (min-width: 1181px) {
+      .charts {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 650px) {
+      main { width: calc(100vw - 16px); }
+      .two,
+      .query-row,
+      .quarter-row {
+        grid-template-columns: 1fr;
+      }
+      .calc-cell { text-align: left; }
+      table { font-size: 12px; }
+      th, td { padding: 8px 7px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>季报 EPS 与 PE 重估工具</h1>
+        <div class="subtitle">用同比利润滑块模拟未来季报，观察 PE(TTM)、动态 PE、forward PE 和股价重估。</div>
+        <div class="subtitle" id="versionText">版本：新增可比 PE 建议</div>
+      </div>
+      <div class="status" id="statusText">等待刷新行情</div>
+    </header>
+
+    <div class="grid">
+      <aside class="panel">
+        <h2>输入</h2>
+        <div class="section">
+          <label for="preset">公司</label>
+          <select id="preset"></select>
+          <div class="actions">
+            <button class="primary" id="refreshBtn" type="button">刷新最新行情</button>
+            <button id="financeBtn" type="button">拉取财报利润</button>
+            <button id="resetBtn" type="button">重置样本</button>
+            <button id="copyBtn" type="button" title="复制当前价格、PE、季度同比、情景利润和目标价">复制测算结果</button>
+          </div>
+          <div class="query-row">
+            <div>
+              <label for="customQuery">自定义查询</label>
+              <input id="customQuery" type="text" placeholder="输入代码或公司名，如 002463 / 沪电股份 / HPE">
+            </div>
+            <button id="lookupBtn" type="button">查询</button>
+          </div>
+          <div class="hint" id="sourceNote"></div>
+          <div class="copy-fallback" id="copyPanel" hidden>
+            <textarea id="copyText" readonly></textarea>
+            <div class="actions">
+              <button id="closeCopyPanel" type="button">关闭</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="two">
+            <div>
+              <label for="price">当前股价</label>
+              <input id="price" type="number" step="0.01">
+            </div>
+            <div>
+              <label for="peTtm">PE(TTM)</label>
+              <input id="peTtm" type="number" step="0.01">
+            </div>
+            <div>
+              <label for="peDynamic">动态 PE</label>
+              <input id="peDynamic" type="number" step="0.01">
+            </div>
+            <div>
+              <label for="targetPe">目标 PE</label>
+              <input id="targetPe" type="number" step="0.01">
+            </div>
+            <div>
+              <label for="shares">总股本，亿股</label>
+              <input id="shares" type="number" step="0.0001">
+            </div>
+            <div>
+              <label for="marketCap">总市值，亿</label>
+              <input id="marketCap" type="number" step="0.01">
+            </div>
+          </div>
+          <div class="hint" id="peNote"></div>
+        </div>
+
+        <div class="section">
+          <label id="quarterSectionLabel">季度同比增速滑块</label>
+          <div class="quarter-row quarter-head">
+            <span id="quarterHeader">情景季度</span>
+            <span id="baseHeader" class="calc-cell">上年同期利润</span>
+            <span class="calc-cell" style="text-align:left">同比增速滑块</span>
+            <span class="calc-cell">同比%</span>
+            <span id="profitHeader" class="calc-cell">本季利润</span>
+          </div>
+          <div id="quarterControls"></div>
+          <div class="actions">
+            <button id="copyQ1Btn" type="button">未来利润复制 Q1</button>
+            <button id="sameYoyBtn" type="button">全部同比 = Q1</button>
+          </div>
+          <div class="hint">利润单位和市值单位一致。A 股为亿元，美股样本为亿美元。</div>
+        </div>
+
+        <div class="section">
+          <div class="two">
+            <div>
+              <label for="lowPe">图表 PE 下沿</label>
+              <input id="lowPe" type="number" step="0.1">
+            </div>
+            <div>
+              <label for="highPe">图表 PE 上沿</label>
+              <input id="highPe" type="number" step="0.1">
+            </div>
+          </div>
+          <div class="actions">
+            <button id="targetIsTtmBtn" type="button">目标 PE = TTM</button>
+            <button id="targetIsDynamicBtn" type="button">目标 PE = 动态</button>
+            <button id="targetHalfBtn" type="button">目标 PE 减半</button>
+          </div>
+          <div class="compare-box">
+            <div class="compare-head">
+              <span>可比 PE 建议</span>
+              <strong id="comparablePeValue">-</strong>
+            </div>
+            <div class="hint" id="comparablePeBasis">点击“拉取可比 PE”，用同赛道公司的动态 PE 中位数给目标 PE 一个参考。</div>
+            <div class="actions">
+              <button id="comparablePeBtn" type="button">拉取可比 PE</button>
+              <button id="useComparablePeBtn" type="button">目标 PE = 可比中位</button>
+            </div>
+            <div class="table-scroll">
+              <table class="peer-table">
+                <thead>
+                  <tr>
+                    <th>公司</th>
+                    <th>TTM</th>
+                    <th>动态</th>
+                    <th>采用</th>
+                  </tr>
+                </thead>
+                <tbody id="comparablePeRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section>
+        <div class="note-box" id="explainBox"></div>
+
+        <div class="metrics">
+          <div class="metric">
+            <span>情景全年利润</span>
+            <strong id="annualProfit">-</strong>
+            <em id="annualEps">-</em>
+          </div>
+          <div class="metric">
+            <span>按 PE(TTM) 对应股价</span>
+            <strong id="priceAtTtmPe">-</strong>
+            <em id="priceAtTtmPePct">-</em>
+          </div>
+          <div class="metric">
+            <span>按目标 PE 对应股价</span>
+            <strong id="targetPrice">-</strong>
+            <em id="targetPricePct">-</em>
+          </div>
+          <div class="metric">
+            <span>PE 口径拆解</span>
+            <strong id="peBreakdown" class="compact">-</strong>
+            <em id="peBreakdownSub">-</em>
+          </div>
+        </div>
+
+        <div class="charts">
+          <div class="panel chart-box">
+            <div class="chart-head">
+              <h2>目标 PE 改变时的股价</h2>
+              <div class="legend">
+                <span><i class="dot" style="background:#2f6fbe"></i>情景股价</span>
+                <span><i class="dot" style="background:#c94f52"></i>当前价</span>
+                <span><i class="dot" style="background:#1e8a62"></i>目标 PE</span>
+              </div>
+            </div>
+            <canvas id="priceChart"></canvas>
+          </div>
+
+          <div class="panel chart-box">
+            <div class="chart-head">
+              <h2>季报发布后 PE 立刻怎么变</h2>
+              <div class="legend">
+                <span><i class="dot" style="background:#c47a24"></i>发布前</span>
+                <span><i class="dot" style="background:#1e8a62"></i>发布后</span>
+              </div>
+            </div>
+            <canvas id="eventChart"></canvas>
+            <div class="chart-note">这张图只使用左侧情景数据：假设市值不变，某个季度利润进入 TTM 分母后，PE 会从“发布前”变成“发布后”。它不是历史真实公告日。</div>
+          </div>
+        </div>
+
+        <div class="panel chart-box">
+          <div class="chart-head">
+            <h2>历史/情景季度表</h2>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th id="tableQuarterHeader">情景季度</th>
+                <th id="tableBaseHeader">上年同期利润</th>
+                <th>同比增速</th>
+                <th id="tableProfitHeader">本季利润</th>
+                <th>单季 EPS</th>
+                <th>发布前 PE</th>
+                <th>发布后 PE</th>
+              </tr>
+            </thead>
+            <tbody id="eventRows"></tbody>
+          </table>
+        </div>
+
+        <div class="panel chart-box history-box">
+          <div class="chart-head">
+            <h2>历史财报发布：PE 被利润分母压低了多少</h2>
+            <div class="legend">
+              <span><i class="dot" style="background:#c47a24"></i>发布前 PE</span>
+              <span><i class="dot" style="background:#1e8a62"></i>发布后 PE（同价）</span>
+              <span><i class="dot" style="background:#2f6fbe"></i>发布后 PE（实际）</span>
+            </div>
+          </div>
+          <canvas id="historyImpactChart"></canvas>
+          <div class="chart-note" id="historyImpactNote">点击“拉取财报利润”后，会用历史公告日和历史收盘价生成。A 股历史市值用当前总股本近似，适合看 PE 分母冲击方向。</div>
+          <div class="table-scroll">
+            <table class="impact-table">
+              <thead>
+                <tr>
+                  <th>报告期</th>
+                  <th>公告日</th>
+                  <th>单季利润</th>
+                  <th>TTM利润变化</th>
+                  <th>股价变化</th>
+                  <th>PE变化（同价）</th>
+                  <th>PE变化（实际）</th>
+                </tr>
+              </thead>
+              <tbody id="historyRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const presets = {
+      hudian: {
+        label: "沪电股份 002463",
+        secid: "0.002463",
+        unit: "亿元",
+        priceUnit: "元",
+        price: 140.82,
+        peTtm: 62.99,
+        peDynamic: 54.54,
+        marketCap: 2709.89,
+        shares: 19.2436,
+        targetPe: 54.54,
+        peRange: [20, 90],
+        baseYear: "2025",
+        scenarioYear: "2026",
+        releasedCount: 1,
+        baseQuarters: [7.6243, 9.21, 10.35, 11.0357],
+        yoy: [62.90, 0, 0, 0],
+        qMax: 140,
+        note: "沪电当前 TTM PE 高于动态 PE，因为 TTM 只替换了 2026Q1；动态 PE 近似把 Q1 利润年化。"
+      },
+      shengyi: {
+        label: "生益科技 600183",
+        secid: "1.600183",
+        unit: "亿元",
+        priceUnit: "元",
+        price: 143.96,
+        peTtm: 89.02,
+        peDynamic: 75.49,
+        marketCap: 3496.96,
+        shares: 24.2926,
+        targetPe: 75.49,
+        peRange: [25, 120],
+        baseYear: "2025",
+        scenarioYear: "2026",
+        releasedCount: 1,
+        baseQuarters: [5.6359, 8.63, 10.17, 8.9041],
+        yoy: [105.47, 0, 0, 0],
+        qMax: 180,
+        note: "生益的 PE(TTM) 分母是 2025Q2-Q4 加 2026Q1；动态 PE 更接近 Q1 年化利润。"
+      },
+      boe: {
+        label: "京东方A 000725",
+        secid: "0.000725",
+        unit: "亿元",
+        priceUnit: "元",
+        price: 6.15,
+        peTtm: 38.29,
+        peDynamic: 33.36,
+        marketCap: 2278.23,
+        shares: 370.4433,
+        targetPe: 33.36,
+        peRange: [10, 55],
+        baseYear: "2025",
+        scenarioYear: "2026",
+        releasedCount: 1,
+        baseQuarters: [12.7803, 19.6797, 13.55, 12.56],
+        yoy: [5.78, 0, 0, 0],
+        qMax: 100,
+        note: "京东方更偏周期股。这里用于观察 EPS 分母变化，不代表它能套用 AI PCB 的估值框架。"
+      },
+      dell: {
+        label: "Dell DELL",
+        secid: "106.DELL",
+        unit: "亿美元",
+        priceUnit: "美元",
+        price: 422.05,
+        peTtm: 32.60,
+        peDynamic: 32.60,
+        marketCap: 2741.50,
+        shares: 6.4950,
+        targetPe: 24.00,
+        peRange: [10, 60],
+        baseYear: "FY2026",
+        scenarioYear: "FY2027",
+        releasedCount: 1,
+        baseQuarters: [21.03, 21.03, 21.03, 21.03],
+        yoy: [38.2, 38.2, 38.2, 38.2],
+        qMax: 160,
+        note: "Dell 样本用行情接口刷新价格和 TTM PE，季度利润是按 FY2027 指引做的情景拆分。"
+      },
+      hpe: {
+        label: "HPE HPE",
+        secid: "106.HPE",
+        unit: "亿美元",
+        priceUnit: "美元",
+        price: 53.69,
+        peTtm: 45.69,
+        peDynamic: 45.69,
+        marketCap: 710.96,
+        shares: 13.2428,
+        targetPe: 22.70,
+        peRange: [8, 60],
+        baseYear: "FY2025",
+        scenarioYear: "FY2026",
+        releasedCount: 2,
+        baseQuarters: [3.89, 3.89, 3.89, 3.89],
+        yoy: [14.1, 61.9, 182.5, 182.5],
+        qMax: 260,
+        note: "HPE 的 TTM PE 高，是因为过去四季利润分母低；若 FY2026 指引兑现，forward PE 会明显低于 TTM PE。"
+      },
+      sndk: {
+        label: "闪迪 SNDK",
+        secid: "105.SNDK",
+        unit: "亿美元",
+        priceUnit: "美元",
+        price: 1759.68,
+        peTtm: 57.82,
+        peDynamic: 57.82,
+        marketCap: 2605.91,
+        shares: 1.4809,
+        targetPe: 35.00,
+        peRange: [10, 90],
+        baseYear: "上年",
+        scenarioYear: "今年",
+        releasedCount: 0,
+        baseQuarters: [11.27, 11.27, 11.27, 11.27],
+        yoy: [0, 0, 0, 0],
+        qMax: 220,
+        note: "闪迪曾经亏损时 PE 会失效。亏损转盈利阶段要看未来利润路径，不能用历史 PE 判断贵便宜。"
+      },
+      custom: {
+        label: "自定义",
+        secid: "",
+        unit: "亿元",
+        priceUnit: "元",
+        price: 100,
+        peTtm: 30,
+        peDynamic: 25,
+        marketCap: 1000,
+        shares: 10,
+        targetPe: 25,
+        peRange: [5, 80],
+        baseYear: "上年",
+        scenarioYear: "今年",
+        releasedCount: 0,
+        baseQuarters: [5, 5, 5, 5],
+        yoy: [20, 20, 20, 20],
+        qMax: 200,
+        note: "自定义时保持市值、利润、股本单位一致即可。"
+      }
+    };
+
+    const peerGroups = {
+      hudian: [
+        { label: "深南电路", secid: "0.002916" },
+        { label: "胜宏科技", secid: "0.300476" },
+        { label: "景旺电子", secid: "1.603228" },
+        { label: "崇达技术", secid: "0.002815" },
+        { label: "生益科技", secid: "1.600183" }
+      ],
+      shengyi: [
+        { label: "沪电股份", secid: "0.002463" },
+        { label: "南亚新材", secid: "1.688519" },
+        { label: "华正新材", secid: "1.603186" },
+        { label: "金安国纪", secid: "0.002636" },
+        { label: "超声电子", secid: "0.000823" }
+      ],
+      boe: [
+        { label: "TCL科技", secid: "0.000100" },
+        { label: "深天马A", secid: "0.000050" },
+        { label: "彩虹股份", secid: "1.600707" },
+        { label: "维信诺", secid: "0.002387" },
+        { label: "龙腾光电", secid: "1.688055" }
+      ],
+      dell: [
+        { label: "HPE", secid: "106.HPE" },
+        { label: "Super Micro", secid: "105.SMCI" },
+        { label: "HP Inc.", secid: "106.HPQ" },
+        { label: "Cisco", secid: "105.CSCO" },
+        { label: "NetApp", secid: "105.NTAP" }
+      ],
+      hpe: [
+        { label: "Dell", secid: "106.DELL" },
+        { label: "Super Micro", secid: "105.SMCI" },
+        { label: "HP Inc.", secid: "106.HPQ" },
+        { label: "Cisco", secid: "105.CSCO" },
+        { label: "NetApp", secid: "105.NTAP" }
+      ],
+      sndk: [
+        { label: "Western Digital", secid: "105.WDC" },
+        { label: "Seagate", secid: "105.STX" },
+        { label: "Micron", secid: "105.MU" }
+      ],
+      custom: []
+    };
+
+    const ids = [
+      "preset", "statusText", "refreshBtn", "financeBtn", "resetBtn", "copyBtn", "customQuery", "lookupBtn", "sourceNote",
+      "price", "peTtm", "peDynamic", "targetPe", "shares", "marketCap", "peNote",
+      "quarterSectionLabel", "quarterHeader", "baseHeader", "profitHeader", "quarterControls",
+      "copyQ1Btn", "sameYoyBtn", "lowPe", "highPe",
+      "targetIsTtmBtn", "targetIsDynamicBtn", "targetHalfBtn", "comparablePeBtn", "useComparablePeBtn",
+      "comparablePeValue", "comparablePeBasis", "comparablePeRows", "explainBox",
+      "annualProfit", "annualEps", "priceAtTtmPe", "priceAtTtmPePct",
+      "targetPrice", "targetPricePct", "peBreakdown", "peBreakdownSub",
+      "tableQuarterHeader", "tableBaseHeader", "tableProfitHeader", "eventRows",
+      "historyImpactNote", "historyRows", "copyPanel", "copyText", "closeCopyPanel"
+    ];
+    const el = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
+
+    let activeKey = "hudian";
+    let baseQuarters = [];
+    let yoyValues = [];
+    let historicalImpactEvents = [];
+    let requestLatency = { quote: null, finance: null, history: null };
+    let comparablePeResult = null;
+    let comparablePeRequestId = 0;
+
+    function n(node, fallback = 0) {
+      const value = Number(node.value);
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    function fmt(value, digits = 2) {
+      if (!Number.isFinite(value)) return "-";
+      const abs = Math.abs(value);
+      if (abs >= 1000) return value.toLocaleString("zh-CN", { maximumFractionDigits: 0 });
+      if (abs >= 100) return value.toLocaleString("zh-CN", { maximumFractionDigits: 1 });
+      return value.toLocaleString("zh-CN", { maximumFractionDigits: digits });
+    }
+
+    function fmtAmount(value, unit) {
+      if (!Number.isFinite(value)) return "-";
+      const fixedText = (num) => num.toLocaleString("zh-CN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      if (unit === "亿元" && Math.abs(value) < 1) {
+        return `${fixedText(value * 10000)} 万元`;
+      }
+      if (unit === "亿美元" && Math.abs(value) < 1) {
+        return `${fixedText(value * 10000)} 万美元`;
+      }
+      return `${fixedText(value)} ${unit}`;
+    }
+
+    function parseAmountInput(raw, unit) {
+      const text = String(raw || "").trim().replace(/,/g, "");
+      if (!text) return 0;
+      const value = Number(text.replace(/[^\d.-]/g, ""));
+      if (!Number.isFinite(value)) return 0;
+      if ((unit === "亿元" || unit === "亿美元") && text.includes("万")) return value / 10000;
+      return value;
+    }
+
+    function formatAmountInput(value, unit) {
+      if (!Number.isFinite(value)) return "";
+      const fixedText = (num) => num.toLocaleString("zh-CN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      if ((unit === "亿元" || unit === "亿美元") && Math.abs(value) < 1) {
+        return `${fixedText(value * 10000)}万`;
+      }
+      return fixedText(value);
+    }
+
+    function pct(value) {
+      if (!Number.isFinite(value)) return "-";
+      const sign = value > 0 ? "+" : "";
+      return `${sign}${value.toFixed(2)}%`;
+    }
+
+    function avg(values) {
+      const nums = values.filter((value) => Number.isFinite(value));
+      if (!nums.length) return null;
+      return nums.reduce((sum, value) => sum + value, 0) / nums.length;
+    }
+
+    function quantile(values, q) {
+      const nums = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+      if (!nums.length) return null;
+      const pos = (nums.length - 1) * q;
+      const base = Math.floor(pos);
+      const rest = pos - base;
+      if (!Number.isFinite(nums[base + 1])) return nums[base];
+      return nums[base] + rest * (nums[base + 1] - nums[base]);
+    }
+
+    function median(values) {
+      return quantile(values, 0.5);
+    }
+
+    function updateRangeProgress(range) {
+      const min = Number(range.min);
+      const max = Number(range.max);
+      const value = Number(range.value);
+      const progress = Number.isFinite(min) && Number.isFinite(max) && max > min
+        ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100))
+        : 0;
+      range.style.setProperty("--range-progress", `${progress}%`);
+    }
+
+    function elapsedMs(startTime) {
+      return Math.max(0, Math.round(performance.now() - startTime));
+    }
+
+    function latencyValue(value) {
+      return Number.isFinite(value) ? `${value}ms` : "-";
+    }
+
+    function resetLatency() {
+      requestLatency = { quote: null, finance: null, history: null };
+    }
+
+    function updateSourceNote() {
+      const p = presets[activeKey];
+      const base = p.secid
+        ? `行情接口：东方财富 push2，secid=${p.secid}；利润基准为 ${p.baseYear} 同期，${p.scenarioYear} 未发布季度均为情景假设。`
+        : `自定义样本：利润基准为 ${p.baseYear} 同期，${p.scenarioYear} 未发布季度均为情景假设。`;
+      const latency = `延时：行情 ${latencyValue(requestLatency.quote)}，利润 ${latencyValue(requestLatency.finance)}，历史行情 ${latencyValue(requestLatency.history)}`;
+      el.sourceNote.textContent = `${base} ${latency}`;
+    }
+
+    function safePe(marketCap, profit) {
+      if (!Number.isFinite(profit) || profit <= 0) return null;
+      return marketCap / profit;
+    }
+
+    function yearQuarter(year, index) {
+      const q = `Q${index + 1}`;
+      const text = String(year || "");
+      if (text.startsWith("FY")) return `${text} ${q}`;
+      if (text === "上年" || text === "今年") return `${text}${q}`;
+      return `${text}${q}`;
+    }
+
+    function releaseStatus(p, index) {
+      return index < (p.releasedCount || 0) ? "已发布" : "情景";
+    }
+
+    function scenarioLabel(p, index) {
+      return `${yearQuarter(p.scenarioYear, index)} ${releaseStatus(p, index)}`;
+    }
+
+    function baseLabel(p, index) {
+      return yearQuarter(p.baseYear, index);
+    }
+
+    function jsonp(url, callbackParam = "cb") {
+      return new Promise((resolve, reject) => {
+        const callback = `quote_cb_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+        const script = document.createElement("script");
+        const joiner = url.includes("?") ? "&" : "?";
+        const timer = window.setTimeout(() => {
+          cleanup();
+          reject(new Error("行情接口超时"));
+        }, 8000);
+
+        function cleanup() {
+          window.clearTimeout(timer);
+          delete window[callback];
+          script.remove();
+        }
+
+        window[callback] = (data) => {
+          cleanup();
+          resolve(data);
+        };
+        script.onerror = () => {
+          cleanup();
+          reject(new Error("行情接口请求失败"));
+        };
+        script.src = `${url}${joiner}${callbackParam}=${callback}`;
+        document.head.appendChild(script);
+      });
+    }
+
+    async function jsonpWithRetry(url, attempts = 2, callbackParam = "cb") {
+      let lastError = null;
+      for (let i = 0; i < attempts; i += 1) {
+        try {
+          const cacheBreaker = `_=${Date.now()}_${i}`;
+          const joiner = url.includes("?") ? "&" : "?";
+          return await jsonp(`${url}${joiner}${cacheBreaker}`, callbackParam);
+        } catch (err) {
+          lastError = err;
+          await new Promise((resolve) => window.setTimeout(resolve, 450));
+        }
+      }
+      throw lastError || new Error("行情接口请求失败");
+    }
+
+    async function fetchQuote(secid) {
+      const fields = "f12,f14,f2,f3,f4,f9,f20,f21,f23,f115";
+      const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=${fields}&secids=${secid}`;
+      const data = await jsonpWithRetry(url, 3);
+      const quote = data && data.data && data.data.diff && data.data.diff[0];
+      if (!quote || !Number.isFinite(Number(quote.f2))) throw new Error(`行情数据为空：${secid}`);
+      return quote;
+    }
+
+    async function fetchQuotes(secids) {
+      const fields = "f12,f14,f2,f3,f4,f9,f20,f21,f23,f115";
+      const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=${fields}&secids=${secids.join(",")}`;
+      const data = await jsonpWithRetry(url, 3);
+      const quotes = data && data.data && Array.isArray(data.data.diff) ? data.data.diff : [];
+      if (!quotes.length) throw new Error("行情数据为空");
+      return quotes;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function quotePeRow(peer, quote) {
+      const peTtm = Number(quote.f115 || quote.f9);
+      const peDynamic = Number(quote.f9 || quote.f115);
+      const used = Number.isFinite(peDynamic) && peDynamic > 0
+        ? peDynamic
+        : (Number.isFinite(peTtm) && peTtm > 0 ? peTtm : null);
+      const basis = Number.isFinite(peDynamic) && peDynamic > 0 ? "动态" : "TTM";
+      return {
+        label: quote.f14 || peer.label,
+        code: quote.f12 || "",
+        peTtm,
+        peDynamic,
+        used,
+        basis,
+        error: ""
+      };
+    }
+
+    function clearComparablePe() {
+      comparablePeRequestId += 1;
+      comparablePeResult = null;
+      el.comparablePeValue.textContent = "-";
+      el.comparablePeBasis.textContent = "点击“拉取可比 PE”，用同赛道公司的动态 PE 中位数给目标 PE 一个参考。";
+      el.comparablePeRows.innerHTML = `
+        <tr>
+          <td colspan="4" style="text-align:left">暂无可比 PE 数据</td>
+        </tr>
+      `;
+    }
+
+    function renderComparablePe(rows, stats, elapsed) {
+      el.comparablePeRows.innerHTML = rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.label)}${row.code ? `<small>${escapeHtml(row.code)}</small>` : ""}</td>
+          <td>${Number.isFinite(row.peTtm) && row.peTtm > 0 ? fmt(row.peTtm) : "-"}</td>
+          <td>${Number.isFinite(row.peDynamic) && row.peDynamic > 0 ? fmt(row.peDynamic) : "-"}</td>
+          <td>${Number.isFinite(row.used) ? `${fmt(row.used)}<small>${escapeHtml(row.basis)}</small>` : "无效"}</td>
+        </tr>
+      `).join("");
+
+      el.comparablePeValue.textContent = Number.isFinite(stats.suggested) ? fmt(stats.suggested) : "-";
+      el.comparablePeBasis.textContent =
+        `建议采用可比公司动态PE中位数 ${fmt(stats.suggested)}；P25/P75 为 ${fmt(stats.p25)} / ${fmt(stats.p75)}，均值 ${fmt(stats.mean)}。` +
+        `样本 ${stats.validCount}/${stats.totalCount} 家，剔除亏损或无效PE；数据源：东方财富 push2，耗时 ${elapsed}ms。`;
+    }
+
+    async function refreshComparablePe() {
+      const requestKey = activeKey;
+      const peers = peerGroups[activeKey] || [];
+      if (!peers.length) {
+        clearComparablePe();
+        el.comparablePeBasis.textContent = "当前自定义样本还没有可比公司列表；先手动设置目标PE，或后续添加自定义可比池。";
+        return;
+      }
+
+      const requestId = ++comparablePeRequestId;
+      el.comparablePeBtn.disabled = true;
+      el.comparablePeBasis.textContent = "正在拉取可比公司 PE...";
+      const start = performance.now();
+      try {
+        const quotes = await fetchQuotes(peers.map((peer) => peer.secid));
+        const quoteMap = new Map(quotes.map((quote) => [String(quote.f12 || "").toUpperCase(), quote]));
+        const rows = peers.map((peer) => {
+          const code = String(peer.secid || "").split(".").pop().toUpperCase();
+          const quote = quoteMap.get(code);
+          if (quote) return quotePeRow(peer, quote);
+          return {
+            label: peer.label,
+            code,
+            peTtm: null,
+            peDynamic: null,
+            used: null,
+            basis: "-",
+            error: "拉取失败"
+          };
+        });
+        const values = rows.map((row) => row.used).filter((value) => Number.isFinite(value) && value > 0);
+        if (!values.length) throw new Error("可比公司 PE 均无效");
+        const stats = {
+          suggested: median(values),
+          p25: quantile(values, 0.25),
+          p75: quantile(values, 0.75),
+          mean: avg(values),
+          validCount: values.length,
+          totalCount: rows.length
+        };
+        if (requestId !== comparablePeRequestId || requestKey !== activeKey) return;
+        comparablePeResult = stats;
+        renderComparablePe(rows, stats, elapsedMs(start));
+      } catch (err) {
+        if (requestId !== comparablePeRequestId || requestKey !== activeKey) return;
+        comparablePeResult = null;
+        el.comparablePeValue.textContent = "-";
+        el.comparablePeBasis.textContent = `可比 PE 拉取失败：${err.message}`;
+      } finally {
+        if (requestId === comparablePeRequestId && requestKey === activeKey) {
+          el.comparablePeBtn.disabled = false;
+        }
+      }
+    }
+
+    function useComparablePe() {
+      if (!comparablePeResult || !Number.isFinite(comparablePeResult.suggested)) {
+        el.comparablePeBasis.textContent = "请先点击“拉取可比 PE”，再应用到目标 PE。";
+        return;
+      }
+      el.targetPe.value = comparablePeResult.suggested.toFixed(2);
+      update();
+    }
+
+    function isAshareSecid(secid) {
+      return /^([01])\.\d{6}$/.test(secid || "");
+    }
+
+    function secidToSecucode(secid) {
+      const match = String(secid || "").match(/^([01])\.(\d{6})$/);
+      if (!match) return "";
+      return `${match[2]}.${match[1] === "1" ? "SH" : "SZ"}`;
+    }
+
+    function reportQuarter(reportDate) {
+      const month = Number(String(reportDate || "").slice(5, 7));
+      if (month === 3) return 1;
+      if (month === 6) return 2;
+      if (month === 9) return 3;
+      if (month === 12) return 4;
+      return 0;
+    }
+
+    function reportYear(reportDate) {
+      return Number(String(reportDate || "").slice(0, 4));
+    }
+
+    function buildQuarterProfitMap(rows, field) {
+      const years = new Map();
+      rows.forEach((row) => {
+        const year = reportYear(row.REPORT_DATE);
+        const quarter = reportQuarter(row.REPORT_DATE);
+        const value = Number(row[field]);
+        if (!year || !quarter || !Number.isFinite(value)) return;
+        if (!years.has(year)) years.set(year, {});
+        years.get(year)[quarter] = value / 100000000;
+      });
+
+      const result = new Map();
+      years.forEach((cum, year) => {
+        const q = {};
+        for (let i = 1; i <= 4; i += 1) {
+          if (!Number.isFinite(cum[i])) continue;
+          q[i] = i === 1 ? cum[i] : cum[i] - (Number.isFinite(cum[i - 1]) ? cum[i - 1] : 0);
+        }
+        result.set(year, q);
+      });
+      return result;
+    }
+
+    async function fetchFinanceRows(secid) {
+      if (!isAshareSecid(secid)) throw new Error("当前自动财报利润仅支持 A 股；美股请按财报/指引手填");
+      const secucode = secidToSecucode(secid);
+      const columns = [
+        "SECUCODE", "SECURITY_CODE", "SECURITY_NAME_ABBR", "REPORT_DATE", "REPORT_DATE_NAME", "NOTICE_DATE",
+        "EPSJB", "TOTALOPERATEREVE", "PARENTNETPROFIT", "KCFJCXSYJLR",
+        "TOTALOPERATEREVETZ", "PARENTNETPROFITTZ", "KCFJCXSYJLRTZ"
+      ].join(",");
+      const filter = encodeURIComponent(`(SECUCODE="${secucode}")`);
+      const url = `https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_F10_FINANCE_MAINFINADATA&columns=${columns}&filter=${filter}&pageNumber=1&pageSize=48&sortTypes=-1&sortColumns=REPORT_DATE`;
+      const data = await jsonpWithRetry(url, 3, "callback");
+      const rows = data && data.result && data.result.data;
+      if (!Array.isArray(rows) || rows.length === 0) throw new Error(`财报数据为空：${secucode}`);
+      return rows;
+    }
+
+    function normalizeDate(value) {
+      return String(value || "").slice(0, 10);
+    }
+
+    function compactDate(value) {
+      return normalizeDate(value).replace(/-/g, "");
+    }
+
+    function addDaysCompact(value, days) {
+      const base = normalizeDate(value);
+      if (!base) return "";
+      const [year, month, day] = base.split("-").map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day));
+      date.setUTCDate(date.getUTCDate() + days);
+      return date.toISOString().slice(0, 10).replace(/-/g, "");
+    }
+
+    function periodKey(year, quarter) {
+      return year * 4 + quarter;
+    }
+
+    function periodTextFromKey(key) {
+      const year = Math.floor((key - 1) / 4);
+      const quarter = ((key - 1) % 4) + 1;
+      return `${year}Q${quarter}`;
+    }
+
+    async function fetchKlineRows(secid, beg, end) {
+      const fields1 = "f1,f2,f3,f4,f5,f6";
+      const fields2 = "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61";
+      const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}&fields1=${fields1}&fields2=${fields2}&klt=101&fqt=0&beg=${beg}&end=${end}`;
+      const data = await jsonpWithRetry(url, 3, "cb");
+      const lines = data && data.data && data.data.klines;
+      if (!Array.isArray(lines) || lines.length === 0) throw new Error("历史行情数据为空");
+      return lines.map((line) => {
+        const parts = String(line).split(",");
+        return {
+          date: parts[0],
+          open: Number(parts[1]),
+          close: Number(parts[2]),
+          pct: Number(parts[8])
+        };
+      }).filter((row) => row.date && Number.isFinite(row.close));
+    }
+
+    function findPreviousTrade(klineRows, date) {
+      const target = normalizeDate(date);
+      let picked = null;
+      klineRows.forEach((row) => {
+        if (row.date < target) picked = row;
+      });
+      return picked;
+    }
+
+    function findNextTrade(klineRows, date) {
+      const target = normalizeDate(date);
+      return klineRows.find((row) => row.date >= target) || null;
+    }
+
+    function buildQuarterProfitDetails(rows) {
+      const cumulative = new Map();
+      const rowByKey = new Map();
+
+      rows.forEach((row) => {
+        const year = reportYear(row.REPORT_DATE);
+        const quarter = reportQuarter(row.REPORT_DATE);
+        const profit = Number(row.PARENTNETPROFIT);
+        if (!year || !quarter || !Number.isFinite(profit)) return;
+        if (!cumulative.has(year)) cumulative.set(year, {});
+        cumulative.get(year)[quarter] = profit / 100000000;
+        rowByKey.set(periodKey(year, quarter), row);
+      });
+
+      const quarters = new Map();
+      cumulative.forEach((cum, year) => {
+        for (let q = 1; q <= 4; q += 1) {
+          if (!Number.isFinite(cum[q])) continue;
+          if (q > 1 && !Number.isFinite(cum[q - 1])) continue;
+          const profit = q === 1 ? cum[q] : cum[q] - cum[q - 1];
+          quarters.set(periodKey(year, q), profit);
+        }
+      });
+
+      return { quarters, rowByKey };
+    }
+
+    function ttmProfitEnding(quarterMap, key) {
+      let sum = 0;
+      for (let i = 0; i < 4; i += 1) {
+        const value = quarterMap.get(key - i);
+        if (!Number.isFinite(value)) return null;
+        sum += value;
+      }
+      return sum;
+    }
+
+    function buildHistoricalImpactEvents(rows, klineRows, shares) {
+      const { quarters, rowByKey } = buildQuarterProfitDetails(rows);
+      const keys = [...rowByKey.keys()].sort((a, b) => a - b);
+      const result = [];
+
+      keys.forEach((key) => {
+        const row = rowByKey.get(key);
+        const noticeDate = normalizeDate(row.NOTICE_DATE);
+        const beforeTrade = findPreviousTrade(klineRows, noticeDate);
+        const afterTrade = findNextTrade(klineRows, noticeDate);
+        const currentProfit = quarters.get(key);
+        const priorSameQuarterProfit = quarters.get(key - 4);
+        const beforeTtm = ttmProfitEnding(quarters, key - 1);
+        const afterTtm = ttmProfitEnding(quarters, key);
+
+        if (!noticeDate || !beforeTrade || !afterTrade || !Number.isFinite(currentProfit) || !beforeTtm || !afterTtm) return;
+
+        const marketCapBefore = beforeTrade.close * shares;
+        const marketCapAfter = afterTrade.close * shares;
+        const peBefore = safePe(marketCapBefore, beforeTtm);
+        const peAfterSamePrice = safePe(marketCapBefore, afterTtm);
+        const peAfterActual = safePe(marketCapAfter, afterTtm);
+        if (!peBefore || !peAfterSamePrice || !peAfterActual) return;
+
+        result.push({
+          key,
+          period: periodTextFromKey(key),
+          reportName: row.REPORT_DATE_NAME || periodTextFromKey(key),
+          noticeDate,
+          beforeTradeDate: beforeTrade.date,
+          afterTradeDate: afterTrade.date,
+          beforeClose: beforeTrade.close,
+          afterClose: afterTrade.close,
+          priceChange: afterTrade.close / beforeTrade.close - 1,
+          currentProfit,
+          yoy: Number.isFinite(priorSameQuarterProfit) && priorSameQuarterProfit !== 0
+            ? (currentProfit / priorSameQuarterProfit - 1) * 100
+            : null,
+          beforeTtm,
+          afterTtm,
+          ttmChange: afterTtm / beforeTtm - 1,
+          peBefore,
+          peAfterSamePrice,
+          peAfterActual,
+          peDropSamePrice: peAfterSamePrice / peBefore - 1,
+          peDropActual: peAfterActual / peBefore - 1
+        });
+      });
+
+      return result;
+    }
+
+    function updateCustomOptionLabel() {
+      const option = [...el.preset.options].find((item) => item.value === "custom");
+      if (option) option.textContent = presets.custom.label;
+    }
+
+    function findBuiltinPreset(query) {
+      const normalized = query.trim().toLowerCase();
+      if (!normalized) return null;
+      return Object.entries(presets).find(([key, preset]) => {
+        if (key === "custom") return false;
+        return preset.label.toLowerCase().includes(normalized) ||
+          String(preset.secid || "").toLowerCase().endsWith(`.${normalized}`) ||
+          String(preset.secid || "").toLowerCase() === normalized;
+      });
+    }
+
+    function fallbackSecid(query) {
+      const text = query.trim();
+      if (/^\d{6}$/.test(text)) {
+        return text.startsWith("6") ? `1.${text}` : `0.${text}`;
+      }
+      if (/^[A-Za-z.]{1,10}$/.test(text)) {
+        return `106.${text.toUpperCase()}`;
+      }
+      return "";
+    }
+
+    async function lookupCustomSecurity() {
+      const query = el.customQuery.value.trim();
+      if (!query) {
+        el.statusText.textContent = "请输入股票代码或公司名。";
+        return;
+      }
+
+      const builtin = findBuiltinPreset(query);
+      if (builtin) {
+        resetLatency();
+        loadPreset(builtin[0]);
+        await refreshQuote();
+        return;
+      }
+
+      el.lookupBtn.disabled = true;
+      el.statusText.textContent = "正在查询证券...";
+      try {
+        const directSecid = fallbackSecid(query);
+        if (directSecid) {
+          presets.custom = {
+            ...presets.custom,
+            label: query.toUpperCase(),
+            secid: directSecid,
+            unit: /^[A-Za-z]/.test(query) ? "亿美元" : "亿元",
+            priceUnit: /^[A-Za-z]/.test(query) ? "美元" : "元",
+            baseYear: "上年",
+            scenarioYear: "今年",
+            releasedCount: 0,
+            note: `${query.toUpperCase()} 已按代码直连行情。历史季度利润请手动输入；未发布季度均为情景假设。`
+          };
+          updateCustomOptionLabel();
+          resetLatency();
+          loadPreset("custom");
+          await refreshQuote();
+          return;
+        }
+
+        const searchUrl = `https://searchapi.eastmoney.com/api/suggest/get?input=${encodeURIComponent(query)}&type=14`;
+        const data = await jsonpWithRetry(searchUrl, 3);
+        const rows = data && data.QuotationCodeTable && data.QuotationCodeTable.Data;
+        const item = Array.isArray(rows)
+          ? rows.find((row) => row.QuoteID && (row.Classify === "AStock" || row.Classify === "UsStock")) || rows[0]
+          : null;
+        const secid = item && (item.QuoteID || (item.MktNum && item.Code ? `${item.MktNum}.${item.Code}` : ""));
+        const resolvedSecid = secid || fallbackSecid(query);
+        if (!resolvedSecid) throw new Error("没有找到可用的行情代码");
+
+        const isUs = item
+          ? item.Classify === "UsStock" || item.SecurityType === "7" || ["105", "106"].includes(String(item.MktNum))
+          : /^[A-Za-z]/.test(query);
+        const code = item ? item.Code : query.toUpperCase();
+        const name = item ? item.Name : query.toUpperCase();
+
+        presets.custom = {
+          ...presets.custom,
+          label: `${name} ${code}`,
+          secid: resolvedSecid,
+          unit: isUs ? "亿美元" : "亿元",
+          priceUnit: isUs ? "美元" : "元",
+          baseYear: "上年",
+          scenarioYear: "今年",
+          releasedCount: 0,
+          note: `${name} 已接入行情。历史季度利润请手动输入；未发布季度均为情景假设。`
+        };
+        updateCustomOptionLabel();
+        resetLatency();
+        loadPreset("custom");
+        await refreshQuote();
+      } catch (err) {
+        el.statusText.textContent = `查询失败：${err.message}`;
+      } finally {
+        el.lookupBtn.disabled = false;
+      }
+    }
+
+    function fillPresetOptions() {
+      Object.entries(presets).forEach(([key, preset]) => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.textContent = preset.label;
+        el.preset.appendChild(option);
+      });
+    }
+
+    function createQuarterControls() {
+      el.quarterControls.innerHTML = "";
+      ["Q1", "Q2", "Q3", "Q4"].forEach((label, index) => {
+        const row = document.createElement("div");
+        row.className = "quarter-row";
+        row.innerHTML = `
+          <div class="period-cell"><strong id="period${index}">${label}</strong><small id="periodStatus${index}"></small></div>
+          <input id="base${index}" type="text">
+          <input id="yoyRange${index}" type="range" min="-100" max="200" step="0.01">
+          <input id="yoy${index}" type="number" step="0.01">
+          <span id="profit${index}" class="calc-cell">-</span>
+        `;
+        el.quarterControls.appendChild(row);
+      });
+
+      for (let i = 0; i < 4; i += 1) {
+        const base = document.getElementById(`base${i}`);
+        const range = document.getElementById(`yoyRange${i}`);
+        const input = document.getElementById(`yoy${i}`);
+        base.addEventListener("input", () => {
+          baseQuarters[i] = parseAmountInput(base.value, presets[activeKey].unit);
+          update();
+        });
+        base.addEventListener("blur", () => {
+          base.value = formatAmountInput(baseQuarters[i], presets[activeKey].unit);
+        });
+        range.addEventListener("input", () => {
+          const value = Number(range.value) || 0;
+          input.value = value.toFixed(2);
+          yoyValues[i] = value;
+          updateRangeProgress(range);
+          update();
+        });
+        input.addEventListener("input", () => {
+          const value = Number(input.value) || 0;
+          if (value < Number(range.min)) range.min = Math.floor(value - 20);
+          if (value > Number(range.max)) range.max = Math.ceil(value + 20);
+          range.value = value;
+          yoyValues[i] = value;
+          updateRangeProgress(range);
+          update();
+        });
+      }
+    }
+
+    function loadPreset(key) {
+      activeKey = key;
+      const p = presets[key];
+      el.preset.value = key;
+      el.customQuery.value = "";
+      el.price.value = p.price;
+      el.peTtm.value = p.peTtm;
+      el.peDynamic.value = p.peDynamic;
+      el.targetPe.value = p.targetPe;
+      el.marketCap.value = p.marketCap;
+      el.shares.value = p.shares;
+      el.lowPe.value = p.peRange[0];
+      el.highPe.value = p.peRange[1];
+      baseQuarters = [...p.baseQuarters];
+      yoyValues = [...p.yoy];
+
+      el.quarterSectionLabel.textContent = `${p.scenarioYear} 季度同比增速滑块`;
+      el.quarterHeader.textContent = `${p.scenarioYear} 季度`;
+      el.baseHeader.textContent = `${p.baseYear} 同期利润`;
+      el.profitHeader.textContent = `${p.scenarioYear} 本季利润`;
+      el.tableQuarterHeader.textContent = `${p.scenarioYear} 季度`;
+      el.tableBaseHeader.textContent = `${p.baseYear} 同期利润`;
+      el.tableProfitHeader.textContent = `${p.scenarioYear} 本季利润`;
+
+      for (let i = 0; i < 4; i += 1) {
+        document.getElementById(`period${i}`).textContent = yearQuarter(p.scenarioYear, i);
+        document.getElementById(`periodStatus${i}`).textContent = releaseStatus(p, i);
+        document.getElementById(`base${i}`).value = formatAmountInput(baseQuarters[i], p.unit);
+        document.getElementById(`yoy${i}`).value = Number(yoyValues[i]).toFixed(2);
+        const range = document.getElementById(`yoyRange${i}`);
+        range.max = p.qMax;
+        range.value = yoyValues[i];
+        updateRangeProgress(range);
+      }
+
+      el.sourceNote.textContent = p.secid
+        ? `行情接口：东方财富 push2，secid=${p.secid}；利润基准为 ${p.baseYear} 同期，${p.scenarioYear} 未发布季度均为情景假设。`
+        : `自定义样本：利润基准为 ${p.baseYear} 同期，${p.scenarioYear} 未发布季度均为情景假设。`;
+      updateSourceNote();
+      el.statusText.textContent = p.note;
+      update();
+      updateHistoricalImpact([]);
+      clearComparablePe();
+      window.setTimeout(() => {
+        if (activeKey === key && (peerGroups[key] || []).length) refreshComparablePe();
+      }, 0);
+      el.historyImpactNote.textContent = "点击“拉取财报利润”后，会用历史公告日和历史收盘价生成。A 股历史市值用当前总股本近似，适合看 PE 分母冲击方向。";
+    }
+
+    function readState() {
+      const price = Math.max(0.000001, n(el.price, 0.000001));
+      let marketCap = n(el.marketCap, 0);
+      let shares = n(el.shares, 0);
+      if (marketCap <= 0 && shares > 0) marketCap = price * shares;
+      if (shares <= 0 && marketCap > 0) shares = marketCap / price;
+      shares = Math.max(0.000001, shares);
+      marketCap = Math.max(0.000001, marketCap);
+
+      const peTtm = Math.max(0.000001, n(el.peTtm, 0.000001));
+      const peDynamic = Math.max(0.000001, n(el.peDynamic, peTtm));
+      const targetPe = Math.max(0.000001, n(el.targetPe, peDynamic));
+      const lowPe = Math.max(0.000001, Math.min(n(el.lowPe, 1), n(el.highPe, 100)));
+      const highPe = Math.max(lowPe + 0.1, n(el.highPe, 100));
+      const p = presets[activeKey];
+      const quarters = baseQuarters.map((base, i) => base * (1 + yoyValues[i] / 100));
+      const annualProfit = quarters.reduce((sum, value) => sum + value, 0);
+      const ttmProfit = marketCap / peTtm;
+      const dynamicProfit = marketCap / peDynamic;
+      const annualEps = annualProfit / shares;
+      const ttmEps = ttmProfit / shares;
+      const targetMarketCap = annualProfit * targetPe;
+      const targetPrice = targetMarketCap / shares;
+      const priceAtTtmPe = annualProfit * peTtm / shares;
+
+      return {
+        p, price, marketCap, shares, peTtm, peDynamic, targetPe, lowPe, highPe,
+        quarters, annualProfit, ttmProfit, dynamicProfit, annualEps, ttmEps,
+        targetMarketCap, targetPrice, priceAtTtmPe
+      };
+    }
+
+    function updateMarketCapFromPrice() {
+      const price = n(el.price, 0);
+      const shares = n(el.shares, 0);
+      if (price > 0 && shares > 0) el.marketCap.value = (price * shares).toFixed(2);
+    }
+
+    function applyFinanceRows(rows) {
+      const latest = rows[0];
+      const latestYear = reportYear(latest.REPORT_DATE);
+      const latestQuarter = reportQuarter(latest.REPORT_DATE);
+      if (!latestYear || !latestQuarter) throw new Error("无法识别最新报告期");
+
+      const baseYearNum = latestYear - 1;
+      const profitMap = buildQuarterProfitMap(rows, "PARENTNETPROFIT");
+      const scenarioProfit = profitMap.get(latestYear) || {};
+      const baseProfit = profitMap.get(baseYearNum) || {};
+
+      const nextBase = [];
+      const nextYoy = [];
+      for (let i = 1; i <= 4; i += 1) {
+        const base = Number.isFinite(baseProfit[i]) ? baseProfit[i] : (baseQuarters[i - 1] || 0);
+        const target = i <= latestQuarter && Number.isFinite(scenarioProfit[i])
+          ? scenarioProfit[i]
+          : base;
+        nextBase.push(base);
+        nextYoy.push(base > 0 ? (target / base - 1) * 100 : 0);
+      }
+
+      const p = presets[activeKey];
+      p.price = n(el.price, p.price);
+      p.peTtm = n(el.peTtm, p.peTtm);
+      p.peDynamic = n(el.peDynamic, p.peDynamic);
+      p.targetPe = n(el.targetPe, p.targetPe);
+      p.marketCap = n(el.marketCap, p.marketCap);
+      p.shares = n(el.shares, p.shares);
+      p.baseYear = String(baseYearNum);
+      p.scenarioYear = String(latestYear);
+      p.releasedCount = latestQuarter;
+      p.baseQuarters = nextBase;
+      p.yoy = nextYoy;
+      p.unit = "亿元";
+      p.priceUnit = "元";
+      p.qMax = Math.max(120, Math.ceil(Math.max(...nextYoy, 20) + 40));
+      p.note = `${latest.SECURITY_NAME_ABBR || p.label} 财报利润已拉取：最新 ${latest.REPORT_DATE_NAME || latest.REPORT_DATE}，公告日 ${String(latest.NOTICE_DATE || "").slice(0, 10) || "未提供"}。未发布季度默认同比 0%，需要你自己假设；可点“未发布复制 Q1”。`;
+
+      if (activeKey === "custom" && latest.SECURITY_NAME_ABBR && latest.SECURITY_CODE) {
+        p.label = `${latest.SECURITY_NAME_ABBR} ${latest.SECURITY_CODE}`;
+        updateCustomOptionLabel();
+      }
+
+      loadPreset(activeKey);
+      el.statusText.textContent = p.note;
+    }
+
+    async function refreshFinance() {
+      const p = presets[activeKey];
+      if (!p.secid) {
+        el.statusText.textContent = "当前样本没有 secid，先输入代码/公司名查询行情。";
+        return;
+      }
+      el.financeBtn.disabled = true;
+      const financeStart = performance.now();
+      el.statusText.textContent = `正在拉取财报利润：${p.secid}`;
+      try {
+        const rows = await fetchFinanceRows(p.secid);
+        requestLatency.finance = elapsedMs(financeStart);
+        applyFinanceRows(rows);
+        const historyStart = performance.now();
+        el.historyImpactNote.textContent = "正在拉取历史行情并计算历史 PE 冲击...";
+        try {
+          await refreshHistoricalImpact(rows);
+          requestLatency.history = elapsedMs(historyStart);
+        } catch (historyErr) {
+          requestLatency.history = elapsedMs(historyStart);
+          updateHistoricalImpact([]);
+          el.historyImpactNote.textContent = `历史 PE 冲击生成失败：${historyErr.message}`;
+        }
+      } catch (err) {
+        requestLatency.finance = elapsedMs(financeStart);
+        el.statusText.textContent = `财报利润拉取失败：${err.message}`;
+      } finally {
+        el.financeBtn.disabled = false;
+        updateSourceNote();
+      }
+    }
+
+    function updateMetrics(s) {
+      const annualChange = s.annualProfit / s.ttmProfit - 1;
+      const priceAtTtmChange = s.priceAtTtmPe / s.price - 1;
+      const targetChange = s.targetPrice / s.price - 1;
+
+      el.annualProfit.textContent = fmtAmount(s.annualProfit, s.p.unit);
+      el.annualEps.textContent = `情景 EPS ${fmt(s.annualEps)} ${s.p.priceUnit}，相对 TTM 利润 ${pct(annualChange * 100)}`;
+      el.priceAtTtmPe.textContent = `${fmt(s.priceAtTtmPe)} ${s.p.priceUnit}`;
+      el.priceAtTtmPePct.textContent = `相对当前股价 ${pct(priceAtTtmChange * 100)}`;
+      el.targetPrice.textContent = `${fmt(s.targetPrice)} ${s.p.priceUnit}`;
+      el.targetPricePct.textContent = `相对当前股价 ${pct(targetChange * 100)}，目标市值 ${fmtAmount(s.targetMarketCap, s.p.unit)}`;
+      el.peBreakdown.textContent = `TTM ${fmt(s.peTtm)} / 动态 ${fmt(s.peDynamic)}`;
+      el.peBreakdownSub.textContent = `TTM利润 ${fmtAmount(s.ttmProfit, s.p.unit)}；动态隐含利润 ${fmtAmount(s.dynamicProfit, s.p.unit)}`;
+      el.peNote.textContent = `PE(TTM)=总市值/最近四季利润；动态 PE 通常更接近“最新季度年化”或行情商预测口径。`;
+      el.explainBox.textContent = `你真正要盯的是 forward PE：如果后面季度利润兑现，E 上升会压低 PE；但如果市场同时下修给你的 PE 倍数，股价未必跟着 E 等比例上涨。${s.p.note}`;
+
+      s.quarters.forEach((value, i) => {
+        document.getElementById(`profit${i}`).textContent = fmtAmount(value, s.p.unit);
+      });
+    }
+
+    function buildEvents(s) {
+      const rows = [];
+      let running = baseQuarters.reduce((sum, value) => sum + value, 0);
+      for (let i = 0; i < 4; i += 1) {
+        const before = running;
+        const after = before - baseQuarters[i] + s.quarters[i];
+        const beforePe = safePe(s.marketCap, before);
+        const afterPe = safePe(s.marketCap, after);
+        rows.push({
+          label: yearQuarter(s.p.scenarioYear, i),
+          status: releaseStatus(s.p, i),
+          basePeriod: baseLabel(s.p, i),
+          base: baseQuarters[i],
+          yoy: yoyValues[i],
+          profit: s.quarters[i],
+          eps: s.quarters[i] / s.shares,
+          beforeProfit: before,
+          afterProfit: after,
+          beforePe,
+          afterPe
+        });
+        running = after;
+      }
+      return rows;
+    }
+
+    function updateEventTable(events, s) {
+      el.eventRows.innerHTML = events.map((row) => `
+        <tr>
+          <td>${row.label} ${row.status}</td>
+          <td>${row.basePeriod}: ${fmtAmount(row.base, s.p.unit)}</td>
+          <td>${pct(row.yoy)}</td>
+          <td>${fmtAmount(row.profit, s.p.unit)}</td>
+          <td>${fmt(row.eps)} ${s.p.priceUnit}</td>
+          <td>${row.beforePe ? fmt(row.beforePe) : "亏损/无效"}</td>
+          <td>${row.afterPe ? fmt(row.afterPe) : "亏损/无效"}</td>
+        </tr>
+      `).join("");
+    }
+
+    function canvasCtx(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.round(rect.width * dpr));
+      canvas.height = Math.max(1, Math.round(rect.height * dpr));
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      return { ctx, width: rect.width, height: rect.height };
+    }
+
+    function drawAxes(ctx, left, top, width, height) {
+      ctx.strokeStyle = "#d9dfdf";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(left, top);
+      ctx.lineTo(left, top + height);
+      ctx.lineTo(left + width, top + height);
+      ctx.stroke();
+    }
+
+    function drawPriceChart(s) {
+      const { ctx, width, height } = canvasCtx("priceChart");
+      const pad = { left: 58, right: 18, top: 22, bottom: 42 };
+      const chartW = width - pad.left - pad.right;
+      const chartH = height - pad.top - pad.bottom;
+      const maxPe = s.highPe;
+      const minPe = s.lowPe;
+      const maxPrice = Math.max(s.price, s.targetPrice, s.priceAtTtmPe, s.annualProfit * maxPe / s.shares) * 1.15;
+      const xOf = (pe) => pad.left + (pe - minPe) / (maxPe - minPe) * chartW;
+      const yOf = (price) => pad.top + chartH - price / maxPrice * chartH;
+
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+      drawAxes(ctx, pad.left, pad.top, chartW, chartH);
+      ctx.font = "12px Segoe UI, Microsoft YaHei, Arial";
+
+      for (let i = 0; i <= 4; i += 1) {
+        const yValue = maxPrice * i / 4;
+        const y = yOf(yValue);
+        ctx.strokeStyle = "#eef1f1";
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + chartW, y);
+        ctx.stroke();
+        ctx.fillStyle = "#68757f";
+        ctx.fillText(fmt(yValue), 8, y + 4);
+      }
+
+      ctx.strokeStyle = "#2f6fbe";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let i = 0; i <= 80; i += 1) {
+        const pe = minPe + (maxPe - minPe) * i / 80;
+        const price = s.annualProfit * pe / s.shares;
+        const x = xOf(pe);
+        const y = yOf(price);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = "#c94f52";
+      ctx.setLineDash([6, 5]);
+      ctx.beginPath();
+      ctx.moveTo(pad.left, yOf(s.price));
+      ctx.lineTo(pad.left + chartW, yOf(s.price));
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#c94f52";
+      ctx.fillText(`当前价 ${fmt(s.price)}`, pad.left + 6, yOf(s.price) - 8);
+
+      [
+        { pe: s.peTtm, color: "#c47a24", label: `TTM ${fmt(s.peTtm)}` },
+        { pe: s.targetPe, color: "#1e8a62", label: `目标 ${fmt(s.targetPe)}` }
+      ].forEach((item, idx) => {
+        if (item.pe < minPe || item.pe > maxPe) return;
+        const x = xOf(item.pe);
+        ctx.strokeStyle = item.color;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x, pad.top);
+        ctx.lineTo(x, pad.top + chartH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = item.color;
+        ctx.fillText(item.label, Math.min(x + 5, width - 92), pad.top + 15 + idx * 16);
+      });
+
+      ctx.fillStyle = "#68757f";
+      ctx.fillText(`PE ${fmt(minPe)}`, pad.left, height - 16);
+      ctx.fillText(`PE ${fmt(maxPe)}`, pad.left + chartW - 52, height - 16);
+    }
+
+    function drawEventChart(events) {
+      const { ctx, width, height } = canvasCtx("eventChart");
+      const pad = { left: 54, right: 18, top: 22, bottom: 42 };
+      const chartW = width - pad.left - pad.right;
+      const chartH = height - pad.top - pad.bottom;
+      const values = events.flatMap((row) => [row.beforePe || 0, row.afterPe || 0]);
+      const maxValue = Math.max(...values, 10) * 1.18;
+      const groupW = chartW / events.length;
+      const barW = Math.min(34, groupW * 0.28);
+      const yOf = (value) => pad.top + chartH - value / maxValue * chartH;
+
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+      drawAxes(ctx, pad.left, pad.top, chartW, chartH);
+      ctx.font = "12px Segoe UI, Microsoft YaHei, Arial";
+
+      for (let i = 0; i <= 4; i += 1) {
+        const v = maxValue * i / 4;
+        const y = yOf(v);
+        ctx.strokeStyle = "#eef1f1";
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + chartW, y);
+        ctx.stroke();
+        ctx.fillStyle = "#68757f";
+        ctx.fillText(fmt(v), 8, y + 4);
+      }
+
+      events.forEach((row, index) => {
+        const x0 = pad.left + index * groupW + groupW / 2;
+        [
+          { value: row.beforePe || 0, color: "#c47a24", dx: -barW - 3 },
+          { value: row.afterPe || 0, color: "#1e8a62", dx: 3 }
+        ].forEach((bar) => {
+          const h = bar.value / maxValue * chartH;
+          const x = x0 + bar.dx;
+          const y = pad.top + chartH - h;
+          ctx.fillStyle = bar.color;
+          ctx.fillRect(x, y, barW, h);
+          ctx.fillStyle = "#1c2630";
+          ctx.fillText(bar.value ? fmt(bar.value) : "-", x - 2, Math.max(14, y - 6));
+        });
+        ctx.fillStyle = "#68757f";
+        ctx.fillText(row.label, x0 - 8, height - 16);
+      });
+    }
+
+    function drawEmptyChart(canvasId, message) {
+      const { ctx, width, height } = canvasCtx(canvasId);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#68757f";
+      ctx.font = "13px Segoe UI, Microsoft YaHei, Arial";
+      ctx.fillText(message, 18, 32);
+    }
+
+    function drawHistoryImpactChart(events) {
+      if (!events.length) {
+        drawEmptyChart("historyImpactChart", "暂无历史 PE 冲击数据，点击“拉取财报利润”生成。");
+        return;
+      }
+
+      const shown = events.slice(-8);
+      const { ctx, width, height } = canvasCtx("historyImpactChart");
+      const pad = { left: 54, right: 20, top: 24, bottom: 48 };
+      const chartW = width - pad.left - pad.right;
+      const chartH = height - pad.top - pad.bottom;
+      const values = shown.flatMap((row) => [row.peBefore, row.peAfterSamePrice, row.peAfterActual]);
+      const maxValue = Math.max(...values, 10) * 1.18;
+      const groupW = chartW / shown.length;
+      const barW = Math.min(28, groupW * 0.20);
+      const yOf = (value) => pad.top + chartH - value / maxValue * chartH;
+
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+      drawAxes(ctx, pad.left, pad.top, chartW, chartH);
+      ctx.font = "12px Segoe UI, Microsoft YaHei, Arial";
+
+      for (let i = 0; i <= 4; i += 1) {
+        const v = maxValue * i / 4;
+        const y = yOf(v);
+        ctx.strokeStyle = "#eef1f1";
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + chartW, y);
+        ctx.stroke();
+        ctx.fillStyle = "#68757f";
+        ctx.fillText(fmt(v), 8, y + 4);
+      }
+
+      shown.forEach((row, index) => {
+        const x0 = pad.left + index * groupW + groupW / 2;
+        [
+          { value: row.peBefore, color: "#c47a24", dx: -barW * 1.5 - 4 },
+          { value: row.peAfterSamePrice, color: "#1e8a62", dx: -barW / 2 },
+          { value: row.peAfterActual, color: "#2f6fbe", dx: barW / 2 + 4 }
+        ].forEach((bar) => {
+          const h = bar.value / maxValue * chartH;
+          const x = x0 + bar.dx;
+          const y = pad.top + chartH - h;
+          ctx.fillStyle = bar.color;
+          ctx.fillRect(x, y, barW, h);
+        });
+
+        ctx.fillStyle = "#1c2630";
+        ctx.fillText(fmt(row.peBefore), x0 - barW * 1.9 - 6, Math.max(14, yOf(row.peBefore) - 6));
+        ctx.fillText(fmt(row.peAfterSamePrice), x0 - barW * 0.7, Math.max(14, yOf(row.peAfterSamePrice) - 6));
+        ctx.fillText(fmt(row.peAfterActual), x0 + barW * 0.7, Math.max(14, yOf(row.peAfterActual) - 6));
+        ctx.fillStyle = "#68757f";
+        ctx.fillText(row.period.replace("20", ""), x0 - 13, height - 18);
+      });
+    }
+
+    function updateHistoryImpactTable(events, unit, priceUnit) {
+      if (!events.length) {
+        el.historyRows.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align:left">暂无历史数据。点击“拉取财报利润”后自动生成。</td>
+          </tr>
+        `;
+        return;
+      }
+
+      el.historyRows.innerHTML = events.slice(-12).reverse().map((row) => `
+        <tr>
+          <td>${row.period}<small>${row.reportName}</small></td>
+          <td>${row.noticeDate}<small>${row.beforeTradeDate} -> ${row.afterTradeDate}</small></td>
+          <td>${fmtAmount(row.currentProfit, unit)}<small>同比 ${row.yoy === null ? "-" : pct(row.yoy)}</small></td>
+          <td>${fmtAmount(row.beforeTtm, unit)} -> ${fmtAmount(row.afterTtm, unit)}<small>${pct(row.ttmChange * 100)}</small></td>
+          <td>${fmt(row.beforeClose)} -> ${fmt(row.afterClose)} ${priceUnit}<small>${pct(row.priceChange * 100)}</small></td>
+          <td>${fmt(row.peBefore)} -> ${fmt(row.peAfterSamePrice)}<small>${pct(row.peDropSamePrice * 100)}</small></td>
+          <td>${fmt(row.peBefore)} -> ${fmt(row.peAfterActual)}<small>${pct(row.peDropActual * 100)}</small></td>
+        </tr>
+      `).join("");
+    }
+
+    function updateHistoricalImpact(events) {
+      historicalImpactEvents = events;
+      const p = presets[activeKey];
+      drawHistoryImpactChart(historicalImpactEvents);
+      updateHistoryImpactTable(historicalImpactEvents, p.unit, p.priceUnit);
+    }
+
+    async function refreshHistoricalImpact(rows) {
+      const p = presets[activeKey];
+      if (!isAshareSecid(p.secid)) {
+        updateHistoricalImpact([]);
+        el.historyImpactNote.textContent = "历史 PE 冲击目前自动支持 A 股。美股需要接 SEC/公司财报和历史市值口径，先用上方情景模型手动输入。";
+        return;
+      }
+
+      const noticeDates = rows.map((row) => normalizeDate(row.NOTICE_DATE)).filter(Boolean);
+      if (!noticeDates.length) throw new Error("财报公告日为空");
+      const beg = addDaysCompact(noticeDates[noticeDates.length - 1], -20);
+      const end = addDaysCompact(noticeDates[0] || new Date().toISOString().slice(0, 10), 20);
+      const klineRows = await fetchKlineRows(p.secid, beg, end);
+      const shares = Math.max(0.000001, n(el.shares, p.shares));
+      const events = buildHistoricalImpactEvents(rows, klineRows, shares);
+      updateHistoricalImpact(events);
+      el.historyImpactNote.textContent = `历史 PE 冲击已生成 ${events.length} 个公告事件。发布前用公告日前一交易日收盘价，发布后实际用公告日当天或之后第一个交易日收盘价；历史总市值用当前总股本近似。`;
+    }
+
+    function update() {
+      const s = readState();
+      updateMetrics(s);
+      const events = buildEvents(s);
+      updateEventTable(events, s);
+      drawPriceChart(s);
+      drawEventChart(events);
+    }
+
+    async function refreshQuote() {
+      const p = presets[activeKey];
+      if (!p.secid) {
+        el.statusText.textContent = "自定义样本没有行情 secid。";
+        return;
+      }
+      el.refreshBtn.disabled = true;
+      const quoteStart = performance.now();
+      el.statusText.textContent = `正在刷新行情：${p.secid}`;
+      try {
+        const quote = await fetchQuote(p.secid);
+        requestLatency.quote = elapsedMs(quoteStart);
+
+        const price = Number(quote.f2);
+        const marketCapRaw = Number(quote.f20);
+        const marketCap = marketCapRaw / 100000000;
+        const shares = marketCap / price;
+        const peTtm = Number(quote.f115 || quote.f9);
+        const peDynamic = Number(quote.f9 || quote.f115);
+
+        el.price.value = price.toFixed(2);
+        el.marketCap.value = marketCap.toFixed(2);
+        el.shares.value = shares.toFixed(4);
+        if (Number.isFinite(peTtm) && peTtm > 0) el.peTtm.value = peTtm.toFixed(2);
+        if (Number.isFinite(peDynamic) && peDynamic > 0) el.peDynamic.value = peDynamic.toFixed(2);
+
+        if (activeKey === "custom" && quote.f14 && quote.f12) {
+          presets.custom.label = `${quote.f14} ${quote.f12}`;
+          updateCustomOptionLabel();
+          el.preset.value = "custom";
+          presets.custom.note = `${quote.f14} 已接入行情。历史季度利润请手动输入；未发布季度均为情景假设。`;
+          el.statusText.textContent = presets.custom.note;
+        }
+
+        el.statusText.textContent = `${quote.f14 || p.label} 已刷新：现价 ${price.toFixed(2)}，涨跌幅 ${fmt(Number(quote.f3))}%`;
+        update();
+        updateSourceNote();
+      } catch (err) {
+        requestLatency.quote = elapsedMs(quoteStart);
+        updateSourceNote();
+        el.statusText.textContent = `刷新失败：${err.message}。请稍后重试，或检查 secid=${p.secid}`;
+      } finally {
+        el.refreshBtn.disabled = false;
+      }
+    }
+
+    function copyQ1Profit() {
+      const q1Profit = baseQuarters[0] * (1 + yoyValues[0] / 100);
+      for (let i = 1; i < 4; i += 1) {
+        const base = baseQuarters[i];
+        const nextYoy = base === 0 ? 0 : (q1Profit / base - 1) * 100;
+        yoyValues[i] = nextYoy;
+        document.getElementById(`yoy${i}`).value = nextYoy.toFixed(2);
+        const range = document.getElementById(`yoyRange${i}`);
+        range.value = nextYoy;
+        updateRangeProgress(range);
+      }
+      update();
+    }
+
+    function sameYoyAsQ1() {
+      for (let i = 1; i < 4; i += 1) {
+        const value = Number(yoyValues[0]) || 0;
+        yoyValues[i] = value;
+        document.getElementById(`yoy${i}`).value = value.toFixed(2);
+        const range = document.getElementById(`yoyRange${i}`);
+        range.value = value;
+        updateRangeProgress(range);
+      }
+      update();
+    }
+
+    function copyWithTextarea(text) {
+      const node = document.createElement("textarea");
+      node.value = text;
+      node.setAttribute("readonly", "");
+      node.style.position = "fixed";
+      node.style.left = "-9999px";
+      node.style.top = "0";
+      document.body.appendChild(node);
+      node.focus();
+      node.select();
+      let ok = false;
+      try {
+        ok = document.execCommand("copy");
+      } catch (err) {
+        ok = false;
+      }
+      node.remove();
+      return ok;
+    }
+
+    async function copyWithClipboardApi(text) {
+      if (!window.isSecureContext || !navigator.clipboard || !navigator.clipboard.writeText) return false;
+      const write = navigator.clipboard.writeText(text).then(() => true);
+      const timeout = new Promise((resolve) => window.setTimeout(() => resolve(false), 700));
+      try {
+        return await Promise.race([write, timeout]);
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function showCopyPanel(text) {
+      el.copyText.value = text;
+      el.copyPanel.hidden = false;
+      el.copyText.focus();
+      el.copyText.select();
+    }
+
+    async function copyScenario() {
+      if (el.copyBtn.disabled) return;
+      el.copyBtn.textContent = "正在复制...";
+      el.copyBtn.disabled = true;
+      el.copyPanel.hidden = true;
+
+      try {
+        const s = readState();
+        const text = [
+          `公司: ${s.p.label}`,
+          `当前价: ${fmt(s.price)} ${s.p.priceUnit}`,
+          `PE(TTM): ${fmt(s.peTtm)}`,
+          `动态PE: ${fmt(s.peDynamic)}`,
+          `目标PE: ${fmt(s.targetPe)}`,
+          `季度同比: ${yoyValues.map((v) => pct(v)).join(" / ")}`,
+          `情景全年利润: ${fmtAmount(s.annualProfit, s.p.unit)}`,
+          `情景EPS: ${fmt(s.annualEps)} ${s.p.priceUnit}`,
+          `目标股价: ${fmt(s.targetPrice)} ${s.p.priceUnit}`
+        ].join("\n");
+        const copied = copyWithTextarea(text) || await copyWithClipboardApi(text);
+        if (copied) {
+          el.copyBtn.textContent = "已复制";
+          el.statusText.textContent = "测算结果已复制到剪贴板。";
+          window.setTimeout(() => { el.copyBtn.textContent = "复制测算结果"; }, 1200);
+        } else {
+          showCopyPanel(text);
+          el.copyBtn.textContent = "复制受限";
+          el.statusText.textContent = "浏览器阻止自动复制，已显示文本。";
+          window.setTimeout(() => { el.copyBtn.textContent = "复制测算结果"; }, 1600);
+        }
+      } catch (err) {
+        el.copyBtn.textContent = "复制失败";
+        el.statusText.textContent = `复制失败：${err.message}`;
+        window.setTimeout(() => { el.copyBtn.textContent = "复制测算结果"; }, 1600);
+      } finally {
+        el.copyBtn.disabled = false;
+      }
+    }
+
+    fillPresetOptions();
+    createQuarterControls();
+
+    el.preset.addEventListener("change", () => {
+      resetLatency();
+      loadPreset(el.preset.value);
+    });
+    el.refreshBtn.addEventListener("click", refreshQuote);
+    el.financeBtn.addEventListener("click", refreshFinance);
+    el.resetBtn.addEventListener("click", () => {
+      resetLatency();
+      loadPreset(activeKey);
+    });
+    el.copyBtn.addEventListener("click", copyScenario);
+    el.copyBtn.addEventListener("pointerdown", copyScenario);
+    el.closeCopyPanel.addEventListener("click", () => {
+      el.copyPanel.hidden = true;
+    });
+    el.lookupBtn.addEventListener("click", lookupCustomSecurity);
+    el.customQuery.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") lookupCustomSecurity();
+    });
+    el.copyQ1Btn.addEventListener("click", copyQ1Profit);
+    el.sameYoyBtn.addEventListener("click", sameYoyAsQ1);
+    el.targetIsTtmBtn.addEventListener("click", () => { el.targetPe.value = el.peTtm.value; update(); });
+    el.targetIsDynamicBtn.addEventListener("click", () => { el.targetPe.value = el.peDynamic.value; update(); });
+    el.targetHalfBtn.addEventListener("click", () => { el.targetPe.value = (n(el.peTtm, 0) / 2).toFixed(2); update(); });
+    el.comparablePeBtn.addEventListener("click", refreshComparablePe);
+    el.useComparablePeBtn.addEventListener("click", useComparablePe);
+
+    ["price", "peTtm", "peDynamic", "targetPe", "shares", "marketCap", "lowPe", "highPe"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", () => {
+        if (id === "price" || id === "shares") updateMarketCapFromPrice();
+        update();
+      });
+    });
+
+    window.addEventListener("resize", () => {
+      update();
+      drawHistoryImpactChart(historicalImpactEvents);
+    });
+    loadPreset("hudian");
+    if (window.location.protocol === "file:") {
+      el.statusText.textContent = "当前是 file:// 打开，行情/财报接口可能受本地文件权限或缓存影响；建议使用 http://127.0.0.1:8765/tools/pe_price_slider.html";
+    }
+  </script>
+</body>
+</html>
